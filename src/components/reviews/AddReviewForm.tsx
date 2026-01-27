@@ -147,6 +147,17 @@ export const AddReviewForm = ({ creatorId, creatorName, availablePlatforms, onSu
           description: `Reward per recensione: ${creatorName}`
         });
 
+      // Call antifraud check (async, don't await to not block UI)
+      supabase.functions.invoke('review-antifraud', {
+        body: { review_id: review.id }
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('Antifraud check error:', error);
+        } else {
+          console.log('Antifraud check result:', data);
+        }
+      });
+
       toast({
         title: 'Recensione inviata!',
         description: 'La tua recensione è in attesa di approvazione. Riceverai +0.20€ dopo la verifica.',

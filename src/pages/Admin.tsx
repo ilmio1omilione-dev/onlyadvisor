@@ -46,13 +46,17 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { EditCreatorDialog } from '@/components/admin/EditCreatorDialog';
 
 interface Creator {
   id: string;
   name: string;
   slug: string;
+  bio: string | null;
   status: string;
   category: string | null;
+  avatar_url: string | null;
+  cover_image_url: string | null;
   created_at: string;
   added_by_user_id: string | null;
 }
@@ -570,30 +574,39 @@ const AdminPage = () => {
                         <TableCell>{getStatusBadge(creator.status)}</TableCell>
                         <TableCell>{new Date(creator.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
-                          {creator.status === 'pending' && (
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => updateCreatorStatus(creator.id, 'active')}
-                                disabled={actionLoading === creator.id}
-                              >
-                                {actionLoading === creator.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Check className="h-4 w-4 text-green-400" />
-                                )}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => updateCreatorStatus(creator.id, 'rejected')}
-                                disabled={actionLoading === creator.id}
-                              >
-                                <X className="h-4 w-4 text-red-400" />
-                              </Button>
-                            </div>
-                          )}
+                          <div className="flex items-center justify-end gap-2">
+                            <EditCreatorDialog 
+                              creator={creator} 
+                              onSuccess={async () => {
+                                const { data } = await supabase.from('creators').select('*').order('created_at', { ascending: false });
+                                if (data) setCreators(data);
+                              }} 
+                            />
+                            {creator.status === 'pending' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => updateCreatorStatus(creator.id, 'active')}
+                                  disabled={actionLoading === creator.id}
+                                >
+                                  {actionLoading === creator.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Check className="h-4 w-4 text-green-400" />
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => updateCreatorStatus(creator.id, 'rejected')}
+                                  disabled={actionLoading === creator.id}
+                                >
+                                  <X className="h-4 w-4 text-red-400" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
