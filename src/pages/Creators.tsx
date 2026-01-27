@@ -1,13 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Filter, SlidersHorizontal, Grid, List } from 'lucide-react';
+import { Search, SlidersHorizontal, Grid, List, Loader2 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { CreatorCard } from '@/components/creators/CreatorCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { mockCreators, categories, platformInfo, Platform } from '@/lib/mockData';
+import { categories } from '@/lib/mockData';
+import { platformConfigs, PlatformType } from '@/lib/platformUtils';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
   SelectContent,
@@ -16,18 +18,64 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+interface Creator {
+  id: string;
+  name: string;
+  slug: string;
+  bio: string | null;
+  avatar_url: string | null;
+  cover_image_url: string | null;
+  category: string | null;
+  country: string | null;
+  languages: string[];
+  tags: string[];
+  rating: number;
+  review_count: number;
+  is_verified: boolean;
+  is_premium: boolean;
+  created_at: string;
+  platform_links?: { platform: PlatformType }[];
+}
+
 const CreatorsPage = () => {
   const [searchParams] = useSearchParams();
   const initialCategory = searchParams.get('category') || '';
+  const initialSearch = searchParams.get('search') || '';
   
-  const [searchQuery, setSearchQuery] = useState('');
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [selectedPlatform, setSelectedPlatform] = useState<string>('');
   const [sortBy, setSortBy] = useState('rating');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+  useEffect(() => {
+    const fetchCreators = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('creators')
+          .select(`
+            *,
+            platform_links (platform)
+          `)
+          .eq('status', 'active')
+          .order('rating', { ascending: false });
+
+        if (error) throw error;
+        if (data) setCreators(data as Creator[]);
+      } catch (error) {
+        console.error('Error fetching creators:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCreators();
+  }, []);
+
   const filteredCreators = useMemo(() => {
-    let result = [...mockCreators];
+    let result = [...creators];
 
     // Search filter
     if (searchQuery) {
@@ -35,8 +83,8 @@ const CreatorsPage = () => {
       result = result.filter(
         (c) =>
           c.name.toLowerCase().includes(query) ||
-          c.bio.toLowerCase().includes(query) ||
-          c.tags.some((t) => t.toLowerCase().includes(query))
+          (c.bio && c.bio.toLowerCase().includes(query)) ||
+          (c.tags && c.tags.some((t) => t.toLowerCase().includes(query)))
       );
     }
 
@@ -48,21 +96,21 @@ const CreatorsPage = () => {
     // Platform filter
     if (selectedPlatform) {
       result = result.filter((c) =>
-        c.platforms.some((p) => p.platform === selectedPlatform)
+        c.platform_links?.some((p) => p.platform === selectedPlatform)
       );
     }
 
     // Sort
     if (sortBy === 'rating') {
-      result.sort((a, b) => b.rating - a.rating);
+      result.sort((a, b) => Number(b.rating) - Number(a.rating));
     } else if (sortBy === 'reviews') {
-      result.sort((a, b) => b.reviewCount - a.reviewCount);
+      result.sort((a, b) => b.review_count - a.review_count);
     } else if (sortBy === 'newest') {
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
 
     return result;
-  }, [searchQuery, selectedCategory, selectedPlatform, sortBy]);
+  }, [creators, searchQuery, selectedCategory, selectedPlatform, sortBy]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -72,6 +120,16 @@ const CreatorsPage = () => {
   };
 
   const hasActiveFilters = searchQuery || selectedCategory || selectedPlatform;
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -92,7 +150,7 @@ const CreatorsPage = () => {
               transition={{ delay: 0.1 }}
               className="text-muted-foreground"
             >
-              Esplora la nostra collezione di {mockCreators.length}+ creator verificati
+              Esplora la nostra collezione di {creators.length}+ creator verificati
             </motion.p>
           </div>
 
@@ -138,9 +196,9 @@ const CreatorsPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tutte</SelectItem>
-                  {Object.entries(platformInfo).map(([key, info]) => (
+                  {Object.entries(platformConfigs).map(([key, config]) => (
                     <SelectItem key={key} value={key}>
-                      {info.name}
+                      {config.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -192,7 +250,7 @@ const CreatorsPage = () => {
                 )}
                 {selectedPlatform && (
                   <Badge variant="secondary">
-                    {platformInfo[selectedPlatform as Platform]?.name}
+                    {platformConfigs[selectedPlatform as PlatformType]?.name}
                   </Badge>
                 )}
                 <Button variant="ghost" size="sm" onClick={clearFilters}>
@@ -212,7 +270,33 @@ const CreatorsPage = () => {
           {filteredCreators.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCreators.map((creator, index) => (
-                <CreatorCard key={creator.id} creator={creator} index={index} />
+                <CreatorCard 
+                  key={creator.id} 
+                  creator={{
+                    id: creator.id,
+                    name: creator.name,
+                    slug: creator.slug,
+                    avatar: creator.avatar_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop',
+                    coverImage: creator.cover_image_url || 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1200&h=400&fit=crop',
+                    bio: creator.bio || '',
+                    category: creator.category || '',
+                    country: creator.country || '',
+                    languages: creator.languages || [],
+                    platforms: creator.platform_links?.map(p => ({
+                      platform: p.platform,
+                      username: '',
+                      url: '',
+                      verified: false
+                    })) || [],
+                    rating: Number(creator.rating),
+                    reviewCount: creator.review_count,
+                    isVerified: creator.is_verified,
+                    isPremium: creator.is_premium,
+                    createdAt: creator.created_at,
+                    tags: creator.tags || []
+                  }} 
+                  index={index} 
+                />
               ))}
             </div>
           ) : (

@@ -1,13 +1,29 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Menu, X, Globe, User } from 'lucide-react';
+import { Search, Menu, X, Globe, User, Shield, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/hooks/useAuth';
+import { AddCreatorForm } from '@/components/creators/AddCreatorForm';
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { user, profile, isAdmin, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
@@ -33,13 +49,13 @@ export const Header = () => {
               Scopri Creator
             </Link>
             <Link 
-              to="/categories" 
+              to="/creators?category=Fitness%20%26%20Lifestyle" 
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               Categorie
             </Link>
             <Link 
-              to="/top-rated" 
+              to="/creators?sort=rating" 
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
               Top Rated
@@ -56,6 +72,11 @@ export const Header = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-secondary/50 border-border/50 focus:border-primary"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery) {
+                    navigate(`/creators?search=${encodeURIComponent(searchQuery)}`);
+                  }
+                }}
               />
             </div>
           </div>
@@ -65,13 +86,45 @@ export const Header = () => {
             <Button variant="ghost" size="icon">
               <Globe className="h-5 w-5" />
             </Button>
-            <Button variant="outline">
-              <User className="h-4 w-4 mr-2" />
-              Accedi
-            </Button>
-            <Button variant="hero">
-              Aggiungi Creator
-            </Button>
+            
+            {user ? (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <User className="h-4 w-4" />
+                      {profile?.username || 'Account'}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 bg-card border-border">
+                    <DropdownMenuItem onClick={() => navigate('/profile')}>
+                      <User className="h-4 w-4 mr-2" />
+                      Il mio profilo
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate('/admin')}>
+                        <Shield className="h-4 w-4 mr-2" />
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <AddCreatorForm />
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => navigate('/auth')}>
+                  <User className="h-4 w-4 mr-2" />
+                  Accedi
+                </Button>
+                <AddCreatorForm />
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -106,30 +159,57 @@ export const Header = () => {
                 <Link 
                   to="/creators" 
                   className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Scopri Creator
                 </Link>
                 <Link 
-                  to="/categories" 
+                  to="/creators?category=Fitness%20%26%20Lifestyle" 
                   className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Categorie
                 </Link>
                 <Link 
-                  to="/top-rated" 
+                  to="/creators?sort=rating" 
                   className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Top Rated
                 </Link>
+                {user && (
+                  <>
+                    <Link 
+                      to="/profile" 
+                      className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Il mio profilo
+                    </Link>
+                    {isAdmin && (
+                      <Link 
+                        to="/admin" 
+                        className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Admin Dashboard
+                      </Link>
+                    )}
+                  </>
+                )}
               </nav>
               <div className="flex flex-col gap-2 pt-2 border-t border-border/50">
-                <Button variant="outline" className="w-full">
-                  <User className="h-4 w-4 mr-2" />
-                  Accedi
-                </Button>
-                <Button variant="hero" className="w-full">
-                  Aggiungi Creator
-                </Button>
+                {user ? (
+                  <Button variant="outline" className="w-full" onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="w-full" onClick={() => { navigate('/auth'); setIsMenuOpen(false); }}>
+                    <User className="h-4 w-4 mr-2" />
+                    Accedi
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>
