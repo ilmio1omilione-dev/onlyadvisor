@@ -9,14 +9,17 @@ import {
   Check,
   X,
   Merge,
-  Eye,
   AlertCircle,
   Loader2,
-  Euro
+  Euro,
+  Settings
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
@@ -31,7 +34,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
@@ -41,7 +43,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -76,15 +77,26 @@ interface PayoutRequest {
   created_at: string;
 }
 
+interface SettingsData {
+  min_payout_amount: string;
+  creator_bonus: string;
+  review_reward: string;
+}
+
 const AdminPage = () => {
+  const { t } = useTranslation();
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [creators, setCreators] = useState<Creator[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [payouts, setPayouts] = useState<PayoutRequest[]>([]);
+  const [settings, setSettings] = useState<SettingsData>({
+    min_payout_amount: '10.00',
+    creator_bonus: '1.00',
+    review_reward: '0.20'
+  });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   
-  // Merge dialog state
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [primaryCreatorId, setPrimaryCreatorId] = useState('');
   const [secondaryCreatorId, setSecondaryCreatorId] = useState('');
@@ -96,38 +108,51 @@ const AdminPage = () => {
     if (!authLoading && (!user || !isAdmin)) {
       navigate('/');
       toast({
-        title: 'Accesso negato',
-        description: 'Non hai i permessi per accedere a questa pagina',
+        title: t('common.error'),
+        description: 'Access denied',
         variant: 'destructive',
       });
     }
-  }, [user, isAdmin, authLoading, navigate, toast]);
+  }, [user, isAdmin, authLoading, navigate, toast, t]);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!isAdmin) return;
 
       try {
-        // Fetch pending creators
         const { data: creatorsData } = await supabase
           .from('creators')
           .select('*')
           .order('created_at', { ascending: false });
         if (creatorsData) setCreators(creatorsData);
 
-        // Fetch pending reviews
         const { data: reviewsData } = await supabase
           .from('reviews')
           .select('*')
           .order('created_at', { ascending: false });
         if (reviewsData) setReviews(reviewsData);
 
-        // Fetch payout requests
         const { data: payoutsData } = await supabase
           .from('payout_requests')
           .select('*')
           .order('created_at', { ascending: false });
         if (payoutsData) setPayouts(payoutsData);
+
+        const { data: settingsData } = await supabase
+          .from('settings')
+          .select('key, value');
+        
+        if (settingsData) {
+          const settingsObj: Record<string, string> = {};
+          settingsData.forEach((s: { key: string; value: unknown }) => {
+            settingsObj[s.key] = String(s.value).replace(/"/g, '');
+          });
+          setSettings({
+            min_payout_amount: settingsObj.min_payout_amount || '10.00',
+            creator_bonus: settingsObj.creator_bonus || '1.00',
+            review_reward: settingsObj.review_reward || '0.20'
+          });
+        }
       } catch (error) {
         console.error('Error fetching admin data:', error);
       } finally {
@@ -148,7 +173,6 @@ const AdminPage = () => {
 
       if (error) throw error;
 
-      // If approved, update the reward transaction status
       if (status === 'active') {
         await supabase
           .from('wallet_transactions')
@@ -157,10 +181,8 @@ const AdminPage = () => {
           .eq('reference_type', 'creator')
           .eq('transaction_type', 'creator_bonus');
 
-        // Update user's pending and available balance
         const creator = creators.find(c => c.id === creatorId);
         if (creator?.added_by_user_id) {
-          // Fetch current balances and update
           const { data: profileData } = await supabase
             .from('profiles')
             .select('pending_balance, available_balance')
@@ -181,12 +203,11 @@ const AdminPage = () => {
 
       setCreators(creators.map(c => c.id === creatorId ? { ...c, status } : c));
       toast({
-        title: status === 'active' ? 'Creator approvato' : 'Creator rifiutato',
-        description: status === 'active' ? 'Il bonus è stato accreditato' : 'Il creator è stato rifiutato',
+        title: status === 'active' ? t('admin.approve') : t('admin.reject'),
       });
     } catch (error: any) {
       toast({
-        title: 'Errore',
+        title: t('common.error'),
         description: error.message,
         variant: 'destructive',
       });
@@ -205,7 +226,6 @@ const AdminPage = () => {
 
       if (error) throw error;
 
-      // If approved, update the reward transaction status
       if (status === 'approved') {
         await supabase
           .from('wallet_transactions')
@@ -217,11 +237,11 @@ const AdminPage = () => {
 
       setReviews(reviews.map(r => r.id === reviewId ? { ...r, status } : r));
       toast({
-        title: status === 'approved' ? 'Recensione approvata' : 'Recensione rifiutata',
+        title: status === 'approved' ? t('admin.approve') : t('admin.reject'),
       });
     } catch (error: any) {
       toast({
-        title: 'Errore',
+        title: t('common.error'),
         description: error.message,
         variant: 'destructive',
       });
@@ -233,8 +253,8 @@ const AdminPage = () => {
   const handleMergeCreators = async () => {
     if (!primaryCreatorId || !secondaryCreatorId || primaryCreatorId === secondaryCreatorId) {
       toast({
-        title: 'Errore',
-        description: 'Seleziona due creator diversi da unire',
+        title: t('common.error'),
+        description: 'Select two different creators',
         variant: 'destructive',
       });
       return;
@@ -242,19 +262,16 @@ const AdminPage = () => {
 
     setActionLoading('merge');
     try {
-      // Move platform links from secondary to primary
       await supabase
         .from('platform_links')
         .update({ creator_id: primaryCreatorId })
         .eq('creator_id', secondaryCreatorId);
 
-      // Move reviews from secondary to primary
       await supabase
         .from('reviews')
         .update({ creator_id: primaryCreatorId })
         .eq('creator_id', secondaryCreatorId);
 
-      // Mark secondary as merged
       await supabase
         .from('creators')
         .update({ 
@@ -263,7 +280,6 @@ const AdminPage = () => {
         })
         .eq('id', secondaryCreatorId);
 
-      // Create correction transaction (-0.80€)
       const secondaryCreator = creators.find(c => c.id === secondaryCreatorId);
       if (secondaryCreator?.added_by_user_id) {
         await supabase
@@ -275,25 +291,24 @@ const AdminPage = () => {
             status: 'approved',
             reference_id: secondaryCreatorId,
             reference_type: 'creator',
-            description: 'Correzione per merge creator duplicato'
+            description: 'Correction for merged duplicate creator'
           });
       }
 
       toast({
-        title: 'Merge completato',
-        description: 'I creator sono stati uniti con successo',
+        title: t('admin.mergeSuccess'),
+        description: t('admin.mergeSuccessDesc'),
       });
       
       setMergeDialogOpen(false);
       setPrimaryCreatorId('');
       setSecondaryCreatorId('');
       
-      // Refresh data
       const { data } = await supabase.from('creators').select('*').order('created_at', { ascending: false });
       if (data) setCreators(data);
     } catch (error: any) {
       toast({
-        title: 'Errore',
+        title: t('common.error'),
         description: error.message,
         variant: 'destructive',
       });
@@ -318,11 +333,35 @@ const AdminPage = () => {
 
       setPayouts(payouts.map(p => p.id === payoutId ? { ...p, status } : p));
       toast({
-        title: `Payout ${status === 'paid' ? 'pagato' : status === 'approved' ? 'approvato' : 'rifiutato'}`,
+        title: status === 'paid' ? t('admin.markPaid') : status === 'approved' ? t('admin.approve') : t('admin.reject'),
       });
     } catch (error: any) {
       toast({
-        title: 'Errore',
+        title: t('common.error'),
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const saveSettings = async () => {
+    setActionLoading('settings');
+    try {
+      for (const [key, value] of Object.entries(settings)) {
+        await supabase
+          .from('settings')
+          .update({ value: value, updated_at: new Date().toISOString(), updated_by: user?.id })
+          .eq('key', key);
+      }
+      
+      toast({
+        title: t('admin.settingsSaved'),
+      });
+    } catch (error: any) {
+      toast({
+        title: t('common.error'),
         description: error.message,
         variant: 'destructive',
       });
@@ -334,16 +373,16 @@ const AdminPage = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary">In attesa</Badge>;
+        return <Badge variant="secondary">{t('profile.pending')}</Badge>;
       case 'active':
       case 'approved':
-        return <Badge variant="verified">Approvato</Badge>;
+        return <Badge variant="verified">{t('profile.approved')}</Badge>;
       case 'rejected':
-        return <Badge variant="destructive">Rifiutato</Badge>;
+        return <Badge variant="destructive">{t('profile.rejected')}</Badge>;
       case 'merged':
-        return <Badge variant="outline">Unito</Badge>;
+        return <Badge variant="outline">{t('admin.merged')}</Badge>;
       case 'paid':
-        return <Badge variant="gold">Pagato</Badge>;
+        return <Badge variant="gold">{t('profile.paid')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -378,11 +417,11 @@ const AdminPage = () => {
             <div className="flex items-center gap-3 mb-2">
               <Shield className="h-8 w-8 text-primary" />
               <h1 className="font-display text-3xl font-bold text-foreground">
-                Admin Dashboard
+                {t('admin.title')}
               </h1>
             </div>
             <p className="text-muted-foreground">
-              Gestisci creator, recensioni e pagamenti
+              {t('admin.subtitle')}
             </p>
           </motion.div>
 
@@ -391,31 +430,31 @@ const AdminPage = () => {
             <div className="bg-card border border-border/50 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <Users className="h-5 w-5 text-primary" />
-                <span className="text-muted-foreground">Creator in attesa</span>
+                <span className="text-muted-foreground">{t('admin.pendingCreators')}</span>
               </div>
               <p className="font-display text-2xl font-bold mt-2">{pendingCreators.length}</p>
             </div>
             <div className="bg-card border border-border/50 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-accent" />
-                <span className="text-muted-foreground">Recensioni in attesa</span>
+                <span className="text-muted-foreground">{t('admin.pendingReviews')}</span>
               </div>
               <p className="font-display text-2xl font-bold mt-2">{pendingReviews.length}</p>
             </div>
             <div className="bg-card border border-border/50 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <Wallet className="h-5 w-5 text-green-400" />
-                <span className="text-muted-foreground">Payout in attesa</span>
+                <span className="text-muted-foreground">{t('admin.pendingPayouts')}</span>
               </div>
               <p className="font-display text-2xl font-bold mt-2">{pendingPayouts.length}</p>
             </div>
             <div className="bg-card border border-border/50 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <Euro className="h-5 w-5 text-yellow-400" />
-                <span className="text-muted-foreground">Totale da pagare</span>
+                <span className="text-muted-foreground">{t('admin.totalToPay')}</span>
               </div>
               <p className="font-display text-2xl font-bold mt-2">
-                €{pendingPayouts.reduce((sum, p) => sum + p.amount, 0).toFixed(2)}
+                €{pendingPayouts.reduce((sum, p) => sum + Number(p.amount), 0).toFixed(2)}
               </p>
             </div>
           </div>
@@ -424,18 +463,17 @@ const AdminPage = () => {
           <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Unisci Creator Duplicati</DialogTitle>
+                <DialogTitle>{t('admin.mergeTitle')}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <p className="text-sm text-muted-foreground">
-                  Seleziona il creator primario (che sopravvive) e quello secondario (che verrà marcato come unito).
-                  I link e le recensioni del secondario verranno spostati al primario.
+                  {t('admin.mergeDescription')}
                 </p>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Creator Primario</label>
+                  <label className="text-sm font-medium">{t('admin.primaryCreator')}</label>
                   <Select value={primaryCreatorId} onValueChange={setPrimaryCreatorId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleziona creator primario" />
+                      <SelectValue placeholder={t('admin.primaryCreator')} />
                     </SelectTrigger>
                     <SelectContent>
                       {creators.filter(c => c.status !== 'merged').map((c) => (
@@ -445,10 +483,10 @@ const AdminPage = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Creator Secondario (da unire)</label>
+                  <label className="text-sm font-medium">{t('admin.secondaryCreator')}</label>
                   <Select value={secondaryCreatorId} onValueChange={setSecondaryCreatorId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleziona creator da unire" />
+                      <SelectValue placeholder={t('admin.secondaryCreator')} />
                     </SelectTrigger>
                     <SelectContent>
                       {creators.filter(c => c.status !== 'merged' && c.id !== primaryCreatorId).map((c) => (
@@ -460,13 +498,13 @@ const AdminPage = () => {
                 <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                   <p className="text-sm text-destructive flex items-center gap-2">
                     <AlertCircle className="h-4 w-4" />
-                    L'utente che ha aggiunto il creator secondario riceverà una correzione di -0.80€
+                    {t('admin.mergeWarning')}
                   </p>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setMergeDialogOpen(false)}>
-                  Annulla
+                  {t('common.cancel')}
                 </Button>
                 <Button 
                   onClick={handleMergeCreators}
@@ -477,7 +515,7 @@ const AdminPage = () => {
                   ) : (
                     <Merge className="h-4 w-4 mr-2" />
                   )}
-                  Unisci Creator
+                  {t('admin.merge')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -485,25 +523,29 @@ const AdminPage = () => {
 
           {/* Tabs */}
           <Tabs defaultValue="creators">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
               <TabsList className="bg-card border border-border/50 p-1 rounded-xl">
                 <TabsTrigger value="creators" className="rounded-lg">
                   <Users className="mr-2 h-4 w-4" />
-                  Creator ({pendingCreators.length})
+                  {t('admin.creators')} ({pendingCreators.length})
                 </TabsTrigger>
                 <TabsTrigger value="reviews" className="rounded-lg">
                   <FileText className="mr-2 h-4 w-4" />
-                  Recensioni ({pendingReviews.length})
+                  {t('admin.reviews')} ({pendingReviews.length})
                 </TabsTrigger>
                 <TabsTrigger value="payouts" className="rounded-lg">
                   <Wallet className="mr-2 h-4 w-4" />
-                  Payout ({pendingPayouts.length})
+                  {t('admin.payouts')} ({pendingPayouts.length})
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="rounded-lg">
+                  <Settings className="mr-2 h-4 w-4" />
+                  {t('admin.settings')}
                 </TabsTrigger>
               </TabsList>
               
               <Button variant="outline" onClick={() => setMergeDialogOpen(true)}>
                 <Merge className="mr-2 h-4 w-4" />
-                Unisci Duplicati
+                {t('admin.mergeDuplicates')}
               </Button>
             </div>
 
@@ -513,11 +555,11 @@ const AdminPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="text-right">Azioni</TableHead>
+                      <TableHead>{t('admin.name')}</TableHead>
+                      <TableHead>{t('admin.category')}</TableHead>
+                      <TableHead>{t('admin.status')}</TableHead>
+                      <TableHead>{t('admin.date')}</TableHead>
+                      <TableHead className="text-right">{t('admin.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -526,7 +568,7 @@ const AdminPage = () => {
                         <TableCell className="font-medium">{creator.name}</TableCell>
                         <TableCell>{creator.category || '-'}</TableCell>
                         <TableCell>{getStatusBadge(creator.status)}</TableCell>
-                        <TableCell>{new Date(creator.created_at).toLocaleDateString('it-IT')}</TableCell>
+                        <TableCell>{new Date(creator.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
                           {creator.status === 'pending' && (
                             <div className="flex items-center justify-end gap-2">
@@ -566,11 +608,11 @@ const AdminPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Titolo</TableHead>
+                      <TableHead>Title</TableHead>
                       <TableHead>Rating</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="text-right">Azioni</TableHead>
+                      <TableHead>{t('admin.status')}</TableHead>
+                      <TableHead>{t('admin.date')}</TableHead>
+                      <TableHead className="text-right">{t('admin.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -579,7 +621,7 @@ const AdminPage = () => {
                         <TableCell className="font-medium">{review.title}</TableCell>
                         <TableCell>{review.rating}/5</TableCell>
                         <TableCell>{getStatusBadge(review.status)}</TableCell>
-                        <TableCell>{new Date(review.created_at).toLocaleDateString('it-IT')}</TableCell>
+                        <TableCell>{new Date(review.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
                           {review.status === 'pending' && (
                             <div className="flex items-center justify-end gap-2">
@@ -619,22 +661,22 @@ const AdminPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Utente</TableHead>
-                      <TableHead>Importo</TableHead>
-                      <TableHead>Metodo</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="text-right">Azioni</TableHead>
+                      <TableHead>{t('admin.user')}</TableHead>
+                      <TableHead>{t('admin.amount')}</TableHead>
+                      <TableHead>{t('admin.method')}</TableHead>
+                      <TableHead>{t('admin.status')}</TableHead>
+                      <TableHead>{t('admin.date')}</TableHead>
+                      <TableHead className="text-right">{t('admin.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {payouts.map((payout) => (
                       <TableRow key={payout.id}>
                         <TableCell className="font-medium">{payout.user_id.slice(0, 8)}...</TableCell>
-                        <TableCell className="font-bold">€{payout.amount.toFixed(2)}</TableCell>
+                        <TableCell className="font-bold">€{Number(payout.amount).toFixed(2)}</TableCell>
                         <TableCell>{payout.payment_method || '-'}</TableCell>
                         <TableCell>{getStatusBadge(payout.status)}</TableCell>
-                        <TableCell>{new Date(payout.created_at).toLocaleDateString('it-IT')}</TableCell>
+                        <TableCell>{new Date(payout.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
                           {payout.status === 'pending' && (
                             <div className="flex items-center justify-end gap-2">
@@ -668,7 +710,7 @@ const AdminPage = () => {
                               ) : (
                                 <>
                                   <Euro className="h-4 w-4 mr-1" />
-                                  Segna pagato
+                                  {t('admin.markPaid')}
                                 </>
                               )}
                             </Button>
@@ -678,6 +720,57 @@ const AdminPage = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings">
+              <div className="bg-card border border-border/50 rounded-xl p-6 max-w-md">
+                <h3 className="font-display text-xl font-bold mb-6">{t('admin.settings')}</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="minPayout">{t('admin.minPayoutAmount')} (€)</Label>
+                    <Input
+                      id="minPayout"
+                      type="number"
+                      step="0.01"
+                      value={settings.min_payout_amount}
+                      onChange={(e) => setSettings({ ...settings, min_payout_amount: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="creatorBonus">{t('admin.creatorBonusAmount')} (€)</Label>
+                    <Input
+                      id="creatorBonus"
+                      type="number"
+                      step="0.01"
+                      value={settings.creator_bonus}
+                      onChange={(e) => setSettings({ ...settings, creator_bonus: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="reviewReward">{t('admin.reviewRewardAmount')} (€)</Label>
+                    <Input
+                      id="reviewReward"
+                      type="number"
+                      step="0.01"
+                      value={settings.review_reward}
+                      onChange={(e) => setSettings({ ...settings, review_reward: e.target.value })}
+                    />
+                  </div>
+                  <Button 
+                    onClick={saveSettings}
+                    disabled={actionLoading === 'settings'}
+                    className="w-full"
+                  >
+                    {actionLoading === 'settings' ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Check className="h-4 w-4 mr-2" />
+                    )}
+                    {t('admin.saveSettings')}
+                  </Button>
+                </div>
               </div>
             </TabsContent>
           </Tabs>
