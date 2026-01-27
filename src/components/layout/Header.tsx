@@ -15,6 +15,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { AddCreatorForm } from '@/components/creators/AddCreatorForm';
 import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export const Header = () => {
   const { t } = useTranslation();
@@ -90,6 +91,7 @@ export const Header = () => {
             
             {user ? (
               <>
+                <NotificationBell />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="gap-2">

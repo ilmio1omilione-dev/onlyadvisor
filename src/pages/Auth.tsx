@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
@@ -264,6 +264,14 @@ const AuthPage = () => {
               >
                 {loading ? 'Caricamento...' : isLogin ? 'Accedi' : 'Registrati'}
               </Button>
+
+              {isLogin && (
+                <div className="text-center">
+                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                    Password dimenticata?
+                  </Link>
+                </div>
+              )}
             </form>
 
             {/* Switch Mode */}
