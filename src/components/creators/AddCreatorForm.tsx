@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, X, ExternalLink, AlertCircle, Check, Loader2 } from 'lucide-react';
+import { Plus, X, ExternalLink, AlertCircle, Check, Loader2, Image, Camera } from 'lucide-react';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ import {
   generateSlug 
 } from '@/lib/platformUtils';
 import { categories } from '@/lib/mockData';
+import { CreatorImageUpload } from './CreatorImageUpload';
 
 interface PlatformLink {
   platform: PlatformType;
@@ -56,6 +57,8 @@ export const AddCreatorForm = () => {
   const [bio, setBio] = useState('');
   const [category, setCategory] = useState('');
   const [country, setCountry] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [coverUrl, setCoverUrl] = useState('');
   const [platforms, setPlatforms] = useState<PlatformLink[]>([]);
   
   const [currentPlatform, setCurrentPlatform] = useState<PlatformType | ''>('');
@@ -121,6 +124,11 @@ export const AddCreatorForm = () => {
       return;
     }
 
+    if (!avatarUrl || !coverUrl) {
+      setErrors({ images: 'Carica sia la foto profilo che la copertina' });
+      return;
+    }
+
     if (platforms.length === 0) {
       setErrors({ platforms: 'Aggiungi almeno un link piattaforma' });
       return;
@@ -140,6 +148,8 @@ export const AddCreatorForm = () => {
           bio: bio || null,
           category,
           country: country || null,
+          avatar_url: avatarUrl || null,
+          cover_image_url: coverUrl || null,
           added_by_user_id: user.id,
           status: 'pending'
         })
@@ -200,6 +210,8 @@ export const AddCreatorForm = () => {
       setBio('');
       setCategory('');
       setCountry('');
+      setAvatarUrl('');
+      setCoverUrl('');
       setPlatforms([]);
       setOpen(false);
     } catch (error: any) {
@@ -232,6 +244,34 @@ export const AddCreatorForm = () => {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+          {/* Image Uploads */}
+          <div className="space-y-4">
+            <Label>Immagini Creator *</Label>
+            <div className="flex flex-col gap-4">
+              <CreatorImageUpload
+                type="cover"
+                currentImageUrl={coverUrl}
+                onUploadComplete={setCoverUrl}
+              />
+              <div className="flex items-center gap-4">
+                <CreatorImageUpload
+                  type="avatar"
+                  currentImageUrl={avatarUrl}
+                  onUploadComplete={setAvatarUrl}
+                />
+                <div className="text-sm text-muted-foreground">
+                  <p>Carica foto profilo</p>
+                  <p className="text-xs">Max 5MB, formato immagine</p>
+                </div>
+              </div>
+            </div>
+            {(!avatarUrl || !coverUrl) && (
+              <p className="text-xs text-muted-foreground">
+                Entrambe le immagini sono richieste per aggiungere un creator
+              </p>
+            )}
+          </div>
+
           {/* Name */}
           <div className="space-y-2">
             <Label htmlFor="name">Nome Creator *</Label>
