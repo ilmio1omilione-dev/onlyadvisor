@@ -244,9 +244,9 @@ export const AddCreatorForm = () => {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-          {/* Image Uploads */}
+          {/* Image Uploads - Required */}
           <div className="space-y-4">
-            <Label>Immagini Creator *</Label>
+            <Label className="text-base font-semibold">Immagini Creator *</Label>
             <div className="flex flex-col gap-4">
               <CreatorImageUpload
                 type="cover"

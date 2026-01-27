@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
-import { Camera, Loader2, X, Image } from 'lucide-react';
+import { Camera, Loader2, X, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+
+// Creator image upload component for avatar and cover images
 
 interface CreatorImageUploadProps {
   type: 'avatar' | 'cover';
@@ -166,12 +168,12 @@ export const CreatorImageUpload = ({
           <img
             src={previewUrl}
             alt="Cover Preview"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover rounded-xl"
           />
         ) : (
-          <div className="w-full h-full bg-muted flex flex-col items-center justify-center gap-2">
-            <Image className="w-8 h-8 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Carica immagine di copertina</span>
+          <div className="w-full h-full bg-muted flex flex-col items-center justify-center gap-2 rounded-xl">
+            <ImageIcon className="w-8 h-8 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Clicca per caricare copertina</span>
           </div>
         )}
 
