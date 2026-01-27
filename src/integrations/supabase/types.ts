@@ -14,16 +14,349 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      creators: {
+        Row: {
+          added_by_user_id: string | null
+          avatar_url: string | null
+          bio: string | null
+          category: string | null
+          country: string | null
+          cover_image_url: string | null
+          created_at: string
+          id: string
+          is_premium: boolean | null
+          is_verified: boolean | null
+          languages: string[] | null
+          merged_into_id: string | null
+          name: string
+          rating: number | null
+          review_count: number | null
+          slug: string
+          status: Database["public"]["Enums"]["creator_status"] | null
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          added_by_user_id?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          category?: string | null
+          country?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          is_premium?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          merged_into_id?: string | null
+          name: string
+          rating?: number | null
+          review_count?: number | null
+          slug: string
+          status?: Database["public"]["Enums"]["creator_status"] | null
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          added_by_user_id?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          category?: string | null
+          country?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          is_premium?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          merged_into_id?: string | null
+          name?: string
+          rating?: number | null
+          review_count?: number | null
+          slug?: string
+          status?: Database["public"]["Enums"]["creator_status"] | null
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creators_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payout_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          payment_details: Json | null
+          payment_method: string | null
+          processed_at: string | null
+          processed_by: string | null
+          status: Database["public"]["Enums"]["transaction_status"] | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          id?: string
+          payment_details?: Json | null
+          payment_method?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"] | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_details?: Json | null
+          payment_method?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platform_links: {
+        Row: {
+          created_at: string
+          creator_id: string
+          id: string
+          is_reachable: boolean | null
+          is_verified: boolean | null
+          last_checked_at: string | null
+          platform: Database["public"]["Enums"]["platform_type"]
+          url: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          id?: string
+          is_reachable?: boolean | null
+          is_verified?: boolean | null
+          last_checked_at?: string | null
+          platform: Database["public"]["Enums"]["platform_type"]
+          url: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          id?: string
+          is_reachable?: boolean | null
+          is_verified?: boolean | null
+          last_checked_at?: string | null
+          platform?: Database["public"]["Enums"]["platform_type"]
+          url?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_links_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          available_balance: number | null
+          avatar_url: string | null
+          created_at: string
+          id: string
+          is_banned: boolean | null
+          pending_balance: number | null
+          preferred_language: string | null
+          risk_score: number | null
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          available_balance?: number | null
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          is_banned?: boolean | null
+          pending_balance?: number | null
+          preferred_language?: string | null
+          risk_score?: number | null
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          available_balance?: number | null
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          is_banned?: boolean | null
+          pending_balance?: number | null
+          preferred_language?: string | null
+          risk_score?: number | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          cons: string[] | null
+          content: string
+          created_at: string
+          creator_id: string
+          helpful_count: number | null
+          id: string
+          language: string | null
+          platform: Database["public"]["Enums"]["platform_type"]
+          pros: string[] | null
+          rating: number
+          status: Database["public"]["Enums"]["review_status"] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cons?: string[] | null
+          content: string
+          created_at?: string
+          creator_id: string
+          helpful_count?: number | null
+          id?: string
+          language?: string | null
+          platform: Database["public"]["Enums"]["platform_type"]
+          pros?: string[] | null
+          rating: number
+          status?: Database["public"]["Enums"]["review_status"] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cons?: string[] | null
+          content?: string
+          created_at?: string
+          creator_id?: string
+          helpful_count?: number | null
+          id?: string
+          language?: string | null
+          platform?: Database["public"]["Enums"]["platform_type"]
+          pros?: string[] | null
+          rating?: number
+          status?: Database["public"]["Enums"]["review_status"] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          processed_at: string | null
+          reference_id: string | null
+          reference_type: string | null
+          status: Database["public"]["Enums"]["transaction_status"] | null
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          processed_at?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"] | null
+          transaction_type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          processed_at?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: Database["public"]["Enums"]["transaction_status"] | null
+          transaction_type?: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
+      creator_status: "active" | "merged" | "pending" | "rejected"
+      platform_type: "onlyfans" | "fansly" | "tipmeon" | "loyalfans"
+      review_status: "pending" | "approved" | "rejected"
+      transaction_status: "pending" | "approved" | "rejected" | "paid"
+      transaction_type:
+        | "creator_bonus"
+        | "review_reward"
+        | "payout"
+        | "adjustment"
+        | "correction"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +483,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+      creator_status: ["active", "merged", "pending", "rejected"],
+      platform_type: ["onlyfans", "fansly", "tipmeon", "loyalfans"],
+      review_status: ["pending", "approved", "rejected"],
+      transaction_status: ["pending", "approved", "rejected", "paid"],
+      transaction_type: [
+        "creator_bonus",
+        "review_reward",
+        "payout",
+        "adjustment",
+        "correction",
+      ],
+    },
   },
 } as const
