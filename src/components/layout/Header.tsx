@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Menu, X, Globe, User, Shield, LogOut } from 'lucide-react';
+import { Search, Menu, X, User, Shield, LogOut } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -13,8 +14,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { AddCreatorForm } from '@/components/creators/AddCreatorForm';
+import { LanguageSwitcher } from '@/components/layout/LanguageSwitcher';
 
 export const Header = () => {
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { user, profile, isAdmin, signOut } = useAuth();
@@ -46,19 +49,19 @@ export const Header = () => {
               to="/creators" 
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              Scopri Creator
+              {t('nav.discoverCreators')}
             </Link>
             <Link 
               to="/creators?category=Fitness%20%26%20Lifestyle" 
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              Categorie
+              {t('nav.categories')}
             </Link>
             <Link 
               to="/creators?sort=rating" 
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              Top Rated
+              {t('nav.topRated')}
             </Link>
           </nav>
 
@@ -68,7 +71,7 @@ export const Header = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Cerca creator..."
+                placeholder={t('common.search') + '...'}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-secondary/50 border-border/50 focus:border-primary"
@@ -83,9 +86,7 @@ export const Header = () => {
 
           {/* Right Actions */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="icon">
-              <Globe className="h-5 w-5" />
-            </Button>
+            <LanguageSwitcher />
             
             {user ? (
               <>
@@ -99,18 +100,18 @@ export const Header = () => {
                   <DropdownMenuContent align="end" className="w-48 bg-card border-border">
                     <DropdownMenuItem onClick={() => navigate('/profile')}>
                       <User className="h-4 w-4 mr-2" />
-                      Il mio profilo
+                      {t('nav.profile')}
                     </DropdownMenuItem>
                     {isAdmin && (
                       <DropdownMenuItem onClick={() => navigate('/admin')}>
                         <Shield className="h-4 w-4 mr-2" />
-                        Admin Dashboard
+                        {t('nav.adminDashboard')}
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut}>
                       <LogOut className="h-4 w-4 mr-2" />
-                      Logout
+                      {t('nav.logout')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -120,7 +121,7 @@ export const Header = () => {
               <>
                 <Button variant="outline" onClick={() => navigate('/auth')}>
                   <User className="h-4 w-4 mr-2" />
-                  Accedi
+                  {t('nav.login')}
                 </Button>
                 <AddCreatorForm />
               </>
@@ -151,7 +152,7 @@ export const Header = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Cerca creator..."
+                  placeholder={t('common.search') + '...'}
                   className="pl-10 bg-secondary/50"
                 />
               </div>
@@ -161,21 +162,21 @@ export const Header = () => {
                   className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Scopri Creator
+                  {t('nav.discoverCreators')}
                 </Link>
                 <Link 
                   to="/creators?category=Fitness%20%26%20Lifestyle" 
                   className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Categorie
+                  {t('nav.categories')}
                 </Link>
                 <Link 
                   to="/creators?sort=rating" 
                   className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Top Rated
+                  {t('nav.topRated')}
                 </Link>
                 {user && (
                   <>
@@ -184,7 +185,7 @@ export const Header = () => {
                       className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Il mio profilo
+                      {t('nav.profile')}
                     </Link>
                     {isAdmin && (
                       <Link 
@@ -192,22 +193,23 @@ export const Header = () => {
                         className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
                         onClick={() => setIsMenuOpen(false)}
                       >
-                        Admin Dashboard
+                        {t('nav.adminDashboard')}
                       </Link>
                     )}
                   </>
                 )}
               </nav>
-              <div className="flex flex-col gap-2 pt-2 border-t border-border/50">
+              <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                <LanguageSwitcher />
                 {user ? (
-                  <Button variant="outline" className="w-full" onClick={handleSignOut}>
+                  <Button variant="outline" onClick={handleSignOut}>
                     <LogOut className="h-4 w-4 mr-2" />
-                    Logout
+                    {t('nav.logout')}
                   </Button>
                 ) : (
-                  <Button variant="outline" className="w-full" onClick={() => { navigate('/auth'); setIsMenuOpen(false); }}>
+                  <Button variant="outline" onClick={() => { navigate('/auth'); setIsMenuOpen(false); }}>
                     <User className="h-4 w-4 mr-2" />
-                    Accedi
+                    {t('nav.login')}
                   </Button>
                 )}
               </div>

@@ -12,10 +12,12 @@ import {
   X,
   Euro
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PayoutRequestForm } from '@/components/profile/PayoutRequestForm';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -39,9 +41,11 @@ interface UserReview {
 }
 
 const ProfilePage = () => {
+  const { t, i18n } = useTranslation();
   const { user, profile, loading: authLoading, signOut, refreshProfile } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [reviews, setReviews] = useState<UserReview[]>([]);
+  const [minPayoutAmount, setMinPayoutAmount] = useState(10);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -52,44 +56,55 @@ const ProfilePage = () => {
     }
   }, [user, authLoading, navigate]);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user) return;
+  const fetchUserData = async () => {
+    if (!user) return;
 
-      try {
-        // Fetch transactions
-        const { data: txData } = await supabase
-          .from('wallet_transactions')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20);
+    try {
+      // Fetch transactions
+      const { data: txData } = await supabase
+        .from('wallet_transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-        if (txData) setTransactions(txData);
+      if (txData) setTransactions(txData);
 
-        // Fetch reviews
-        const { data: reviewData } = await supabase
-          .from('reviews')
-          .select('id, rating, title, status, created_at, creator_id')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+      // Fetch reviews
+      const { data: reviewData } = await supabase
+        .from('reviews')
+        .select('id, rating, title, status, created_at, creator_id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-        if (reviewData) setReviews(reviewData);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      } finally {
-        setLoading(false);
+      if (reviewData) setReviews(reviewData);
+
+      // Fetch min payout setting
+      const { data: settingData } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'min_payout_amount')
+        .single();
+
+      if (settingData) {
+        setMinPayoutAmount(parseFloat(settingData.value as string));
       }
-    };
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchUserData();
   }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
     toast({
-      title: 'Logout effettuato',
-      description: 'A presto!',
+      title: 'Logout',
+      description: t('nav.logout'),
     });
     navigate('/');
   };
@@ -97,13 +112,13 @@ const ProfilePage = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />In attesa</Badge>;
+        return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />{t('profile.pending')}</Badge>;
       case 'approved':
-        return <Badge variant="verified" className="gap-1"><Check className="h-3 w-3" />Approvato</Badge>;
+        return <Badge variant="verified" className="gap-1"><Check className="h-3 w-3" />{t('profile.approved')}</Badge>;
       case 'rejected':
-        return <Badge variant="destructive" className="gap-1"><X className="h-3 w-3" />Rifiutato</Badge>;
+        return <Badge variant="destructive" className="gap-1"><X className="h-3 w-3" />{t('profile.rejected')}</Badge>;
       case 'paid':
-        return <Badge variant="gold" className="gap-1"><Euro className="h-3 w-3" />Pagato</Badge>;
+        return <Badge variant="gold" className="gap-1"><Euro className="h-3 w-3" />{t('profile.paid')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -111,13 +126,18 @@ const ProfilePage = () => {
 
   const getTransactionTypeLabel = (type: string) => {
     switch (type) {
-      case 'creator_bonus': return 'Bonus Creator';
-      case 'review_reward': return 'Reward Recensione';
-      case 'payout': return 'Prelievo';
-      case 'adjustment': return 'Aggiustamento';
-      case 'correction': return 'Correzione';
+      case 'creator_bonus': return t('profile.creatorBonus');
+      case 'review_reward': return t('profile.reviewReward');
+      case 'payout': return t('profile.payout');
+      case 'adjustment': return t('profile.adjustment');
+      case 'correction': return t('profile.correction');
       default: return type;
     }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const locale = i18n.language === 'it' ? 'it-IT' : i18n.language === 'es' ? 'es-ES' : 'en-US';
+    return new Date(dateStr).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   };
 
   if (authLoading || loading) {
@@ -155,12 +175,12 @@ const ProfilePage = () => {
                 </h1>
                 <p className="text-muted-foreground">{user.email}</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Membro dal {new Date(profile.created_at).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
+                  {t('profile.memberSince', { date: formatDate(profile.created_at) })}
                 </p>
               </div>
 
               <Button variant="outline" onClick={handleSignOut}>
-                Logout
+                {t('nav.logout')}
               </Button>
             </div>
           </motion.div>
@@ -177,10 +197,10 @@ const ProfilePage = () => {
                 <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center">
                   <Wallet className="h-5 w-5 text-accent" />
                 </div>
-                <span className="text-muted-foreground">Saldo Disponibile</span>
+                <span className="text-muted-foreground">{t('profile.availableBalance')}</span>
               </div>
               <p className="font-display text-3xl font-bold text-accent">
-                €{profile.available_balance.toFixed(2)}
+                €{Number(profile.available_balance).toFixed(2)}
               </p>
             </div>
 
@@ -189,10 +209,10 @@ const ProfilePage = () => {
                 <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
                   <Clock className="h-5 w-5 text-primary" />
                 </div>
-                <span className="text-muted-foreground">In Attesa</span>
+                <span className="text-muted-foreground">{t('profile.pendingBalance')}</span>
               </div>
               <p className="font-display text-3xl font-bold text-primary">
-                €{profile.pending_balance.toFixed(2)}
+                €{Number(profile.pending_balance).toFixed(2)}
               </p>
             </div>
 
@@ -201,7 +221,7 @@ const ProfilePage = () => {
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
                   <Star className="h-5 w-5 text-foreground" />
                 </div>
-                <span className="text-muted-foreground">Recensioni</span>
+                <span className="text-muted-foreground">{t('profile.reviewsCount')}</span>
               </div>
               <p className="font-display text-3xl font-bold text-foreground">
                 {reviews.length}
@@ -209,16 +229,33 @@ const ProfilePage = () => {
             </div>
           </motion.div>
 
+          {/* Payout Request */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mb-8"
+          >
+            <PayoutRequestForm 
+              availableBalance={Number(profile.available_balance)}
+              minPayoutAmount={minPayoutAmount}
+              onSuccess={fetchUserData}
+            />
+            <p className="text-sm text-muted-foreground text-center mt-2">
+              {t('profile.minPayout', { amount: minPayoutAmount.toFixed(2) })}
+            </p>
+          </motion.div>
+
           {/* Tabs */}
           <Tabs defaultValue="transactions" className="mb-20">
             <TabsList className="w-full justify-start bg-card border border-border/50 p-1 rounded-xl mb-6">
               <TabsTrigger value="transactions" className="rounded-lg">
                 <Wallet className="mr-2 h-4 w-4" />
-                Transazioni
+                {t('profile.transactions')}
               </TabsTrigger>
               <TabsTrigger value="reviews" className="rounded-lg">
                 <FileText className="mr-2 h-4 w-4" />
-                Le Mie Recensioni
+                {t('profile.myReviews')}
               </TabsTrigger>
             </TabsList>
 
@@ -245,7 +282,7 @@ const ProfilePage = () => {
                             {getTransactionTypeLabel(tx.transaction_type)}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {tx.description || new Date(tx.created_at).toLocaleDateString('it-IT')}
+                            {tx.description || new Date(tx.created_at).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -254,7 +291,7 @@ const ProfilePage = () => {
                         <span className={`font-display text-lg font-bold ${
                           tx.amount > 0 ? 'text-green-400' : 'text-red-400'
                         }`}>
-                          {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(2)}€
+                          {tx.amount > 0 ? '+' : ''}{Number(tx.amount).toFixed(2)}€
                         </span>
                       </div>
                     </motion.div>
@@ -264,10 +301,10 @@ const ProfilePage = () => {
                 <div className="text-center py-16 bg-card border border-border/50 rounded-xl">
                   <Wallet className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="font-display text-xl font-bold text-foreground mb-2">
-                    Nessuna transazione
+                    {t('profile.noTransactions')}
                   </h3>
                   <p className="text-muted-foreground">
-                    Inizia ad aggiungere creator e scrivere recensioni per guadagnare!
+                    {t('profile.noTransactionsHint')}
                   </p>
                 </div>
               )}
@@ -297,7 +334,7 @@ const ProfilePage = () => {
                         <div>
                           <p className="font-medium text-foreground">{review.title}</p>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(review.created_at).toLocaleDateString('it-IT')}
+                            {new Date(review.created_at).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
@@ -309,10 +346,10 @@ const ProfilePage = () => {
                 <div className="text-center py-16 bg-card border border-border/50 rounded-xl">
                   <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="font-display text-xl font-bold text-foreground mb-2">
-                    Nessuna recensione
+                    {t('profile.noReviews')}
                   </h3>
                   <p className="text-muted-foreground">
-                    Non hai ancora scritto recensioni. Inizia ora!
+                    {t('profile.noReviewsHint')}
                   </p>
                 </div>
               )}
