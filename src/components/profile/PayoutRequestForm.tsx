@@ -78,37 +78,21 @@ export const PayoutRequestForm = ({
     setLoading(true);
 
     try {
-      // Create payout request
-      const { error: payoutError } = await supabase
-        .from('payout_requests')
-        .insert({
-          user_id: user.id,
-          amount: numAmount,
-          payment_method: paymentMethod,
-          payment_details: { details: paymentDetails },
-          status: 'pending'
-        });
+      // Use atomic RPC function to prevent race conditions
+      const { data, error: rpcError } = await supabase.rpc('request_payout', {
+        p_amount: numAmount,
+        p_payment_method: paymentMethod,
+        p_payment_details: { details: paymentDetails }
+      });
 
-      if (payoutError) throw payoutError;
-
-      // Create transaction record
-      await supabase
-        .from('wallet_transactions')
-        .insert({
-          user_id: user.id,
-          amount: -numAmount,
-          transaction_type: 'payout',
-          status: 'pending',
-          description: `Richiesta prelievo via ${paymentMethod}`
-        });
-
-      // Update user's available balance
-      await supabase
-        .from('profiles')
-        .update({ 
-          available_balance: availableBalance - numAmount 
-        })
-        .eq('user_id', user.id);
+      if (rpcError) {
+        // Handle specific error messages
+        if (rpcError.message.includes('Insufficient balance')) {
+          setErrors({ amount: t('profile.insufficientBalance') });
+          return;
+        }
+        throw rpcError;
+      }
 
       toast({
         title: t('profile.payoutRequested'),
