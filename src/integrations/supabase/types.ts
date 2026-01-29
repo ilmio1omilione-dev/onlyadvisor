@@ -397,7 +397,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -406,6 +426,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      request_payout: {
+        Args: {
+          p_amount: number
+          p_payment_details: Json
+          p_payment_method: string
+        }
+        Returns: Json
       }
     }
     Enums: {
