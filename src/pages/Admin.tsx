@@ -170,39 +170,17 @@ const AdminPage = () => {
   const updateCreatorStatus = async (creatorId: string, status: 'active' | 'rejected') => {
     setActionLoading(creatorId);
     try {
-      const { error } = await supabase
-        .from('creators')
-        .update({ status })
-        .eq('id', creatorId);
-
-      if (error) throw error;
-
+      // Use secure RPC functions with audit logging
       if (status === 'active') {
-        await supabase
-          .from('wallet_transactions')
-          .update({ status: 'approved' })
-          .eq('reference_id', creatorId)
-          .eq('reference_type', 'creator')
-          .eq('transaction_type', 'creator_bonus');
-
-        const creator = creators.find(c => c.id === creatorId);
-        if (creator?.added_by_user_id) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('pending_balance, available_balance')
-            .eq('user_id', creator.added_by_user_id)
-            .single();
-          
-          if (profileData) {
-            await supabase
-              .from('profiles')
-              .update({ 
-                pending_balance: Math.max(0, Number(profileData.pending_balance) - 1.00),
-                available_balance: Number(profileData.available_balance) + 1.00
-              })
-              .eq('user_id', creator.added_by_user_id);
-          }
-        }
+        const { error } = await supabase.rpc('admin_approve_creator', {
+          p_creator_id: creatorId
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.rpc('admin_reject_creator', {
+          p_creator_id: creatorId
+        });
+        if (error) throw error;
       }
 
       setCreators(creators.map(c => c.id === creatorId ? { ...c, status } : c));
@@ -223,20 +201,17 @@ const AdminPage = () => {
   const updateReviewStatus = async (reviewId: string, status: 'approved' | 'rejected') => {
     setActionLoading(reviewId);
     try {
-      const { error } = await supabase
-        .from('reviews')
-        .update({ status })
-        .eq('id', reviewId);
-
-      if (error) throw error;
-
+      // Use secure RPC functions with audit logging
       if (status === 'approved') {
-        await supabase
-          .from('wallet_transactions')
-          .update({ status: 'approved' })
-          .eq('reference_id', reviewId)
-          .eq('reference_type', 'review')
-          .eq('transaction_type', 'review_reward');
+        const { error } = await supabase.rpc('admin_approve_review', {
+          p_review_id: reviewId
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.rpc('admin_reject_review', {
+          p_review_id: reviewId
+        });
+        if (error) throw error;
       }
 
       setReviews(reviews.map(r => r.id === reviewId ? { ...r, status } : r));
@@ -324,14 +299,11 @@ const AdminPage = () => {
   const updatePayoutStatus = async (payoutId: string, status: 'approved' | 'rejected' | 'paid') => {
     setActionLoading(payoutId);
     try {
-      const { error } = await supabase
-        .from('payout_requests')
-        .update({ 
-          status,
-          processed_at: new Date().toISOString(),
-          processed_by: user?.id
-        })
-        .eq('id', payoutId);
+      // Use secure RPC function with audit logging
+      const { error } = await supabase.rpc('admin_process_payout', {
+        p_payout_id: payoutId,
+        p_status: status
+      });
 
       if (error) throw error;
 

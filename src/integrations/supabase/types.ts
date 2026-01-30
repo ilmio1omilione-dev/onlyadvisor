@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          table_name: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+        }
+        Relationships: []
+      }
       creators: {
         Row: {
           added_by_user_id: string | null
@@ -420,6 +453,14 @@ export type Database = {
       }
     }
     Functions: {
+      admin_approve_creator: { Args: { p_creator_id: string }; Returns: Json }
+      admin_approve_review: { Args: { p_review_id: string }; Returns: Json }
+      admin_process_payout: {
+        Args: { p_admin_notes?: string; p_payout_id: string; p_status: string }
+        Returns: Json
+      }
+      admin_reject_creator: { Args: { p_creator_id: string }; Returns: Json }
+      admin_reject_review: { Args: { p_review_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
