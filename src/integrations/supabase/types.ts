@@ -119,6 +119,13 @@ export type Database = {
             referencedRelation: "creators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "creators_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
         ]
       }
       notifications: {
@@ -238,6 +245,13 @@ export type Database = {
             referencedRelation: "creators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "platform_links_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -339,6 +353,13 @@ export type Database = {
             referencedRelation: "creators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reviews_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
         ]
       }
       settings: {
@@ -430,6 +451,63 @@ export type Database = {
       }
     }
     Views: {
+      public_creators: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          category: string | null
+          country: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          id: string | null
+          is_premium: boolean | null
+          is_verified: boolean | null
+          languages: string[] | null
+          name: string | null
+          rating: number | null
+          review_count: number | null
+          slug: string | null
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          category?: string | null
+          country?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_premium?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          name?: string | null
+          rating?: number | null
+          review_count?: number | null
+          slug?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          category?: string | null
+          country?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_premium?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          name?: string | null
+          rating?: number | null
+          review_count?: number | null
+          slug?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       public_profiles: {
         Row: {
           avatar_url: string | null
@@ -450,6 +528,40 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      public_reviews: {
+        Row: {
+          cons: string[] | null
+          content: string | null
+          created_at: string | null
+          creator_id: string | null
+          helpful_count: number | null
+          id: string | null
+          language: string | null
+          platform: Database["public"]["Enums"]["platform_type"] | null
+          pros: string[] | null
+          rating: number | null
+          reviewer_avatar: string | null
+          reviewer_username: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
