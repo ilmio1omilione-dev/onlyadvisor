@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { categories } from '@/lib/mockData';
 import { platformConfigs, PlatformType } from '@/lib/platformUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { SEOHead, BreadcrumbJsonLd } from '@/components/seo';
 import {
   Select,
   SelectContent,
@@ -133,6 +134,18 @@ const CreatorsPage = () => {
 
   return (
     <Layout>
+      <SEOHead 
+        title="Scopri i Creator - OnlyAdvisor"
+        description="Esplora la nostra collezione di content creator verificati. Trova i migliori creator per categoria, piattaforma e valutazione."
+        canonicalUrl="/creators"
+        keywords={['creator', 'onlyfans', 'fansly', 'recensioni', 'top rated']}
+      />
+      <BreadcrumbJsonLd 
+        items={[
+          { name: 'Home', url: '/' },
+          { name: 'Creator', url: '/creators' },
+        ]}
+      />
       <div className="min-h-screen py-8">
         <div className="container mx-auto px-4">
           {/* Header */}
