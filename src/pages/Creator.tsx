@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { platformConfigs, PlatformType } from '@/lib/platformUtils';
+import { SEOHead, CreatorJsonLd, ReviewJsonLd, BreadcrumbJsonLd } from '@/components/seo';
 
 interface Creator {
   id: string;
@@ -183,6 +184,46 @@ const CreatorPage = () => {
 
   return (
     <Layout>
+      <SEOHead 
+        title={`${creator.name} - Recensioni e Profilo`}
+        description={creator.bio || `Leggi le recensioni di ${creator.name}. Rating ${Number(creator.rating).toFixed(1)}/5 basato su ${creator.review_count} recensioni verificate.`}
+        canonicalUrl={`/creator/${creator.slug}`}
+        ogImage={creator.avatar_url || undefined}
+        ogType="profile"
+        keywords={[creator.name, creator.category || '', 'recensioni', 'onlyfans', 'fansly'].filter(Boolean)}
+      />
+      <CreatorJsonLd 
+        name={creator.name}
+        slug={creator.slug}
+        description={creator.bio || undefined}
+        image={creator.avatar_url || undefined}
+        rating={Number(creator.rating)}
+        reviewCount={creator.review_count}
+        country={creator.country || undefined}
+      />
+      {reviews.length > 0 && (
+        <ReviewJsonLd 
+          reviews={reviews.map(r => ({
+            id: r.id,
+            authorName: r.profiles?.username || 'Utente',
+            rating: r.rating,
+            title: r.title,
+            content: r.content,
+            datePublished: r.created_at,
+          }))}
+          itemName={creator.name}
+          itemSlug={creator.slug}
+          aggregateRating={Number(creator.rating)}
+          reviewCount={creator.review_count}
+        />
+      )}
+      <BreadcrumbJsonLd 
+        items={[
+          { name: 'Home', url: '/' },
+          { name: 'Creator', url: '/creators' },
+          { name: creator.name, url: `/creator/${creator.slug}` },
+        ]}
+      />
       {/* Cover Image */}
       <div className="relative h-64 md:h-80 overflow-hidden">
         <img
