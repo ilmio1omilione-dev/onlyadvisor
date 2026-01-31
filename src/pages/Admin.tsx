@@ -12,7 +12,8 @@ import {
   AlertCircle,
   Loader2,
   Euro,
-  Settings
+  Settings,
+  Trash2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Layout } from '@/components/layout/Layout';
@@ -43,6 +44,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -322,6 +334,35 @@ const AdminPage = () => {
     }
   };
 
+  const deleteCreator = async (creatorId: string) => {
+    setActionLoading(`delete-${creatorId}`);
+    try {
+      // Delete related platform_links first
+      await supabase.from('platform_links').delete().eq('creator_id', creatorId);
+      
+      // Delete related reviews
+      await supabase.from('reviews').delete().eq('creator_id', creatorId);
+      
+      // Delete the creator
+      const { error } = await supabase.from('creators').delete().eq('id', creatorId);
+      if (error) throw error;
+
+      setCreators(creators.filter(c => c.id !== creatorId));
+      toast({
+        title: 'Creator eliminato',
+        description: 'Il creator è stato eliminato con successo',
+      });
+    } catch (error: any) {
+      toast({
+        title: t('common.error'),
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const saveSettings = async () => {
     setActionLoading('settings');
     try {
@@ -578,6 +619,40 @@ const AdminPage = () => {
                                 </Button>
                               </>
                             )}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={actionLoading === `delete-${creator.id}`}
+                                >
+                                  {actionLoading === `delete-${creator.id}` ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  )}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Elimina Creator</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Sei sicuro di voler eliminare <strong>{creator.name}</strong>? 
+                                    Questa azione eliminerà anche tutte le recensioni e i link associati. 
+                                    L'operazione non può essere annullata.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteCreator(creator.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Elimina
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>
