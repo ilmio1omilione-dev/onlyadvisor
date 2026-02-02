@@ -1,8 +1,21 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { DollarSign, Star, Shield, Users } from 'lucide-react';
+import { DollarSign, Star, Shield, Users, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+const CREATOR_BONUS = 1.0;
+const REVIEW_REWARD = 0.2;
 
 export const RewardsSection = () => {
+  const [creatorsCount, setCreatorsCount] = useState(10);
+  const [reviewsCount, setReviewsCount] = useState(50);
+
+  const creatorsEarnings = creatorsCount * CREATOR_BONUS;
+  const reviewsEarnings = reviewsCount * REVIEW_REWARD;
+  const totalEarnings = creatorsEarnings + reviewsEarnings;
+
   return (
     <section className="py-20 bg-card/30">
       <div className="container mx-auto px-4">
@@ -72,7 +85,7 @@ export const RewardsSection = () => {
               </motion.div>
             </div>
 
-            {/* Visual */}
+            {/* Calculator */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -81,28 +94,74 @@ export const RewardsSection = () => {
             >
               <div className="relative bg-gradient-to-br from-accent/20 to-primary/20 rounded-3xl p-8 border border-border/50">
                 <div className="absolute -top-4 -right-4 w-20 h-20 bg-accent rounded-2xl rotate-12 flex items-center justify-center shadow-elevated">
-                  <DollarSign className="h-10 w-10 text-accent-foreground" />
+                  <Calculator className="h-10 w-10 text-accent-foreground" />
                 </div>
                 
                 <div className="space-y-6">
-                  <div className="p-4 bg-card rounded-xl border border-border/50">
-                    <div className="text-sm text-muted-foreground mb-1">Il tuo saldo</div>
-                    <div className="font-display text-3xl font-bold text-foreground">€47.80</div>
+                  <div className="text-center mb-6">
+                    <h3 className="font-display text-xl font-semibold text-foreground mb-1">
+                      Calcola i tuoi guadagni
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Scopri quanto potresti guadagnare
+                    </p>
                   </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg">
-                      <span className="text-sm text-muted-foreground">Creator aggiunti</span>
-                      <span className="font-semibold text-foreground">23</span>
+
+                  {/* Creator Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="creators" className="text-foreground flex items-center gap-2">
+                      <Users className="h-4 w-4 text-green-500" />
+                      Creator aggiunti
+                    </Label>
+                    <div className="flex items-center gap-3">
+                      <Input
+                        id="creators"
+                        type="number"
+                        min={0}
+                        max={1000}
+                        value={creatorsCount}
+                        onChange={(e) => setCreatorsCount(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="bg-card border-border/50"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        × €{CREATOR_BONUS.toFixed(2)} = <span className="font-semibold text-green-500">€{creatorsEarnings.toFixed(2)}</span>
+                      </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg">
-                      <span className="text-sm text-muted-foreground">Recensioni scritte</span>
-                      <span className="font-semibold text-foreground">89</span>
+                  </div>
+
+                  {/* Reviews Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="reviews" className="text-foreground flex items-center gap-2">
+                      <Star className="h-4 w-4 text-accent" />
+                      Recensioni scritte
+                    </Label>
+                    <div className="flex items-center gap-3">
+                      <Input
+                        id="reviews"
+                        type="number"
+                        min={0}
+                        max={10000}
+                        value={reviewsCount}
+                        onChange={(e) => setReviewsCount(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="bg-card border-border/50"
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        × €{REVIEW_REWARD.toFixed(2)} = <span className="font-semibold text-accent">€{reviewsEarnings.toFixed(2)}</span>
+                      </span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg">
-                      <span className="text-sm text-muted-foreground">In attesa di verifica</span>
-                      <span className="font-semibold text-accent">€5.40</span>
-                    </div>
+                  </div>
+
+                  {/* Total */}
+                  <div className="p-4 bg-card rounded-xl border border-border/50 mt-6">
+                    <div className="text-sm text-muted-foreground mb-1">Guadagno potenziale totale</div>
+                    <motion.div 
+                      key={totalEarnings}
+                      initial={{ scale: 1.1 }}
+                      animate={{ scale: 1 }}
+                      className="font-display text-4xl font-bold text-foreground"
+                    >
+                      €{totalEarnings.toFixed(2)}
+                    </motion.div>
                   </div>
                 </div>
               </div>
