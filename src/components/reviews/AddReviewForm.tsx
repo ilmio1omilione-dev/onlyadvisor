@@ -147,6 +147,20 @@ export const AddReviewForm = ({ creatorId, creatorName, availablePlatforms, onSu
           description: `Reward per recensione: ${creatorName}`
         });
 
+      // Update user's pending balance
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('pending_balance')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile) {
+        await supabase
+          .from('profiles')
+          .update({ pending_balance: (profile.pending_balance || 0) + 0.20 })
+          .eq('user_id', user.id);
+      }
+
       // Call antifraud check (async, don't await to not block UI)
       supabase.functions.invoke('review-antifraud', {
         body: { review_id: review.id }
@@ -155,12 +169,13 @@ export const AddReviewForm = ({ creatorId, creatorName, availablePlatforms, onSu
           console.error('Antifraud check error:', error);
         } else {
           console.log('Antifraud check result:', data);
+          // The antifraud function handles balance updates automatically
         }
       });
 
       toast({
         title: 'Recensione inviata!',
-        description: 'La tua recensione è in attesa di approvazione. Riceverai +0.20€ dopo la verifica.',
+        description: 'La tua recensione è in fase di verifica. Riceverai +0.20€ dopo l\'approvazione.',
       });
 
       // Reset form
