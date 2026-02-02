@@ -137,6 +137,54 @@ export const AddCreatorForm = () => {
     setLoading(true);
 
     try {
+      // Run anti-fraud check before submission
+      const { data: fraudCheck, error: fraudError } = await supabase.functions.invoke('creator-antifraud', {
+        body: {
+          creator_name: name,
+          platform_links: platforms,
+          user_id: user.id,
+        },
+      });
+
+      if (fraudError) {
+        console.error('Anti-fraud check error:', fraudError);
+        // Continue with submission even if anti-fraud fails
+      } else if (fraudCheck?.result) {
+        const { shouldBlock, similarCreators, duplicateLinks, flags, needsManualReview } = fraudCheck.result;
+        
+        // Block submission if high risk
+        if (shouldBlock) {
+          let errorMessage = 'Rilevati problemi con i dati inseriti:\n';
+          
+          if (duplicateLinks.length > 0) {
+            errorMessage += `• Link duplicati: ${duplicateLinks.join(', ')}\n`;
+          }
+          
+          if (similarCreators.length > 0) {
+            errorMessage += `• Creator simili esistenti: ${similarCreators.map((c: { name: string }) => c.name).join(', ')}`;
+          }
+          
+          toast({
+            title: 'Impossibile aggiungere',
+            description: errorMessage,
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
+
+        // Warn but allow if medium risk
+        if (needsManualReview && similarCreators.length > 0) {
+          toast({
+            title: 'Attenzione',
+            description: `Esistono creator simili: ${similarCreators.map((c: { name: string }) => c.name).join(', ')}. La tua richiesta verrà esaminata manualmente.`,
+            variant: 'default',
+          });
+        }
+
+        console.log('Anti-fraud check passed:', { flags, riskScore: fraudCheck.result.riskScore });
+      }
+
       const slug = generateSlug(name);
       
       // Create creator
@@ -157,10 +205,10 @@ export const AddCreatorForm = () => {
         .single();
 
       if (creatorError) {
-        if (creatorError.message.includes('duplicate')) {
+        if (creatorError.message.includes('duplicate') || creatorError.message.includes('Duplicate')) {
           toast({
-            title: 'Creator già esistente',
-            description: 'Un creator con questo nome esiste già',
+            title: 'Creator o link già esistente',
+            description: 'Un creator con questo nome o link esiste già',
             variant: 'destructive',
           });
         } else {
@@ -184,6 +232,15 @@ export const AddCreatorForm = () => {
       if (linksError) {
         // Rollback creator if links fail
         await supabase.from('creators').delete().eq('id', creator.id);
+        
+        if (linksError.message.includes('Duplicate')) {
+          toast({
+            title: 'Link duplicato',
+            description: 'Uno dei link inseriti esiste già nel sistema',
+            variant: 'destructive',
+          });
+          return;
+        }
         throw linksError;
       }
 
@@ -200,6 +257,20 @@ export const AddCreatorForm = () => {
           description: `Bonus per aggiunta creator: ${name}`
         });
 
+      // Update user's pending balance
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('pending_balance')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile) {
+        await supabase
+          .from('profiles')
+          .update({ pending_balance: (profile.pending_balance || 0) + 1.00 })
+          .eq('user_id', user.id);
+      }
+
       toast({
         title: 'Creator aggiunto!',
         description: 'Il creator è in attesa di approvazione. Riceverai +1.00€ dopo la verifica.',
@@ -214,11 +285,12 @@ export const AddCreatorForm = () => {
       setCoverUrl('');
       setPlatforms([]);
       setOpen(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Impossibile aggiungere il creator';
       console.error('Error adding creator:', error);
       toast({
         title: 'Errore',
-        description: error.message || 'Impossibile aggiungere il creator',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

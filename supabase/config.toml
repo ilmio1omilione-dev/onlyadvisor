@@ -1,1 +1,7 @@
 project_id = "zbejbxgqmchtkhozpfje"
+
+[functions.review-antifraud]
+verify_jwt = false
+
+[functions.creator-antifraud]
+verify_jwt = false

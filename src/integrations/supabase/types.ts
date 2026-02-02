@@ -573,6 +573,20 @@ export type Database = {
       }
       admin_reject_creator: { Args: { p_creator_id: string }; Returns: Json }
       admin_reject_review: { Args: { p_review_id: string }; Returns: Json }
+      calculate_user_fraud_indicators: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
+      find_similar_creators: {
+        Args: { p_creator_name: string; p_threshold?: number }
+        Returns: {
+          id: string
+          name: string
+          similarity_score: number
+          slug: string
+          status: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -580,6 +594,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      name_similarity: {
+        Args: { name1: string; name2: string }
+        Returns: number
+      }
+      normalize_username: { Args: { input_text: string }; Returns: string }
       request_payout: {
         Args: {
           p_amount: number
