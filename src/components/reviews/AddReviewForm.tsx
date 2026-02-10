@@ -134,32 +134,7 @@ export const AddReviewForm = ({ creatorId, creatorName, availablePlatforms, onSu
         return;
       }
 
-      // Create pending reward transaction
-      await supabase
-        .from('wallet_transactions')
-        .insert({
-          user_id: user.id,
-          amount: 0.20,
-          transaction_type: 'review_reward',
-          status: 'pending',
-          reference_id: review.id,
-          reference_type: 'review',
-          description: `Reward per recensione: ${creatorName}`
-        });
-
-      // Update user's pending balance
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('pending_balance')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profile) {
-        await supabase
-          .from('profiles')
-          .update({ pending_balance: (profile.pending_balance || 0) + 0.20 })
-          .eq('user_id', user.id);
-      }
+      // Wallet transaction and balance update handled automatically by database trigger
 
       // Call antifraud check (async, don't await to not block UI)
       supabase.functions.invoke('review-antifraud', {

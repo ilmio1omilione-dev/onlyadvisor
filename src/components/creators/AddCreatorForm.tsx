@@ -244,32 +244,7 @@ export const AddCreatorForm = () => {
         throw linksError;
       }
 
-      // Create pending reward transaction
-      await supabase
-        .from('wallet_transactions')
-        .insert({
-          user_id: user.id,
-          amount: 1.00,
-          transaction_type: 'creator_bonus',
-          status: 'pending',
-          reference_id: creator.id,
-          reference_type: 'creator',
-          description: `Bonus per aggiunta creator: ${name}`
-        });
-
-      // Update user's pending balance
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('pending_balance')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profile) {
-        await supabase
-          .from('profiles')
-          .update({ pending_balance: (profile.pending_balance || 0) + 1.00 })
-          .eq('user_id', user.id);
-      }
+      // Wallet transaction and balance update handled automatically by database trigger
 
       toast({
         title: 'Creator aggiunto!',
