@@ -35,7 +35,7 @@ interface Creator {
   is_verified: boolean;
   is_premium: boolean;
   created_at: string;
-  platform_links?: { platform: PlatformType }[];
+  platform_links?: { platform: PlatformType; username: string; url: string; is_verified: boolean }[];
 }
 
 const CreatorsPage = () => {
@@ -58,7 +58,7 @@ const CreatorsPage = () => {
           .from('creators')
           .select(`
             *,
-            platform_links (platform)
+            platform_links (platform, username, url, is_verified)
           `)
           .eq('status', 'active')
           .order('rating', { ascending: false });
@@ -297,9 +297,9 @@ const CreatorsPage = () => {
                     languages: creator.languages || [],
                     platforms: creator.platform_links?.map(p => ({
                       platform: p.platform,
-                      username: '',
-                      url: '',
-                      verified: false
+                      username: p.username,
+                      url: p.url,
+                      verified: p.is_verified ?? false
                     })) || [],
                     rating: Number(creator.rating),
                     reviewCount: creator.review_count,

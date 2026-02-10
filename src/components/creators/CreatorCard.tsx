@@ -84,23 +84,26 @@ export const CreatorCard = ({ creator, index = 0 }: CreatorCardProps) => {
 
             {/* Platforms */}
             <div className="flex flex-wrap gap-2">
-              {creator.platforms.map((platform) => (
-                <a
-                  key={platform.platform}
-                  href={platform.url || `${platformInfo[platform.platform].baseUrl}${platform.username}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1 px-2 py-1 rounded-md bg-secondary/50 text-xs hover:bg-secondary transition-colors"
-                  style={{ borderLeft: `3px solid ${platformInfo[platform.platform].color}` }}
-                >
-                  <span className="text-muted-foreground">{platformInfo[platform.platform].name}</span>
-                  {platform.verified && (
-                    <Shield className="h-3 w-3 text-primary" />
-                  )}
-                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                </a>
-              ))}
+              {creator.platforms.map((platform) => {
+                const isTipmeon = platform.platform === 'tipmeon';
+                return (
+                  <a
+                    key={platform.platform}
+                    href={platform.url || `${platformInfo[platform.platform].baseUrl}${platform.username}`}
+                    target="_blank"
+                    rel={isTipmeon ? 'noopener noreferrer' : 'noopener noreferrer nofollow'}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md bg-secondary/50 text-xs hover:bg-secondary transition-colors"
+                    style={{ borderLeft: `3px solid ${platformInfo[platform.platform].color}` }}
+                  >
+                    <span className="text-muted-foreground">{platformInfo[platform.platform].name}</span>
+                    {platform.verified && (
+                      <Shield className="h-3 w-3 text-primary" />
+                    )}
+                    <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                  </a>
+                );
+              })}
             </div>
           </div>
         </div>
