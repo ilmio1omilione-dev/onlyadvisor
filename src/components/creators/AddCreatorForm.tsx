@@ -28,7 +28,7 @@ import {
   platformConfigs, 
   PlatformType, 
   generateProfileUrl, 
-  normalizeUsername,
+  extractUsernameFromInput,
   validateUsername,
   generateSlug 
 } from '@/lib/platformUtils';
@@ -76,7 +76,7 @@ export const AddCreatorForm = () => {
       return;
     }
     
-    const normalized = normalizeUsername(currentUsername);
+    const normalized = extractUsernameFromInput(currentUsername, currentPlatform);
     const url = generateProfileUrl(currentPlatform, normalized);
     
     // Check for duplicates
@@ -299,7 +299,7 @@ export const AddCreatorForm = () => {
   };
 
   const previewUrl = currentPlatform && currentUsername 
-    ? generateProfileUrl(currentPlatform, normalizeUsername(currentUsername))
+    ? generateProfileUrl(currentPlatform, extractUsernameFromInput(currentUsername, currentPlatform))
     : '';
 
   return (

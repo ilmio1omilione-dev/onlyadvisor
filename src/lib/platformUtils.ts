@@ -41,12 +41,40 @@ export const generateProfileUrl = (platform: PlatformType, username: string): st
   return `${config.baseUrl}${normalizedUsername}`;
 };
 
-export const normalizeUsername = (username: string): string => {
-  return username
+export const extractUsernameFromInput = (input: string, platform?: PlatformType): string => {
+  const trimmed = input.trim();
+  
+  // Check if user pasted a full URL — try to extract username from it
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      const url = new URL(trimmed);
+      // Extract last non-empty path segment as username
+      const segments = url.pathname.split('/').filter(Boolean);
+      if (segments.length > 0) {
+        return segments[segments.length - 1].toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+      }
+    } catch {
+      // Not a valid URL, fall through
+    }
+  }
+
+  // Also check if it matches a known platform base URL without protocol
+  for (const config of Object.values(platformConfigs)) {
+    const base = config.baseUrl.replace(/^https?:\/\//, '');
+    if (trimmed.toLowerCase().startsWith(base)) {
+      const rest = trimmed.slice(base.length);
+      return rest.replace(/^\//, '').toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+    }
+  }
+
+  return trimmed
     .replace(/^@/, '')
-    .trim()
     .toLowerCase()
     .replace(/[^a-z0-9_.-]/g, '');
+};
+
+export const normalizeUsername = (username: string): string => {
+  return extractUsernameFromInput(username);
 };
 
 export const validateUsername = (username: string): { valid: boolean; error?: string } => {
