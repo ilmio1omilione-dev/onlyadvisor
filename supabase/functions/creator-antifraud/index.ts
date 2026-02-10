@@ -81,11 +81,36 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } }
     );
+
+    // Validate JWT
+    const anonClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const authenticatedUserId = claimsData.claims.sub as string;
 
     const { creator_name, platform_links, user_id }: CreatorCheckRequest = await req.json();
 
@@ -93,6 +118,14 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'creator_name, platform_links, and user_id are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Ensure caller can only check for themselves
+    if (user_id !== authenticatedUserId) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: user_id mismatch' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
