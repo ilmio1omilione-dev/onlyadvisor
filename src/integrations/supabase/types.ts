@@ -171,6 +171,7 @@ export type Database = {
           created_at: string
           id: string
           payment_details: Json | null
+          payment_details_encrypted: string | null
           payment_method: string | null
           processed_at: string | null
           processed_by: string | null
@@ -183,6 +184,7 @@ export type Database = {
           created_at?: string
           id?: string
           payment_details?: Json | null
+          payment_details_encrypted?: string | null
           payment_method?: string | null
           processed_at?: string | null
           processed_by?: string | null
@@ -195,6 +197,7 @@ export type Database = {
           created_at?: string
           id?: string
           payment_details?: Json | null
+          payment_details_encrypted?: string | null
           payment_method?: string | null
           processed_at?: string | null
           processed_by?: string | null
@@ -577,6 +580,8 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: Json
       }
+      decrypt_payment_details: { Args: { p_encrypted: string }; Returns: Json }
+      encrypt_payment_details: { Args: { p_details: Json }; Returns: string }
       find_similar_creators: {
         Args: { p_creator_name: string; p_threshold?: number }
         Returns: {
